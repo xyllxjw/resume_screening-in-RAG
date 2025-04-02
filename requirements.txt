@@ -1,0 +1,16 @@
+pip install httpx
+pip install huggingface-hub
+pip install langchain
+pip install langchain-community
+pip install langchain-core
+pip install langchain-openai
+pip install numpy
+pip install openai
+pip install pandas
+pip install streamlit
+pip install streamlit_modal
+pip install sentence-transformers
+pip install faiss_cpu
+pip install pydantic
+pip install python-dotenv
+pip install pypdf
