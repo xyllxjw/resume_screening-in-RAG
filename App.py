@@ -109,8 +109,10 @@ if "embedding_model" not in st.session_state:
 
 # 如果RAG pipeline为空，则加载向量数据库FAISS_PATH中的数据
 if "rag_pipeline" not in st.session_state:
-  vectordb = FAISS.load_local(FAISS_PATH, st.session_state.embedding_model, distance_strategy=DistanceStrategy.COSINE, allow_dangerous_deserialization=True)
-  st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
+  st.session_state.rag_pipeline = None
+
+#   vectordb = FAISS.load_local(FAISS_PATH, st.session_state.embedding_model, distance_strategy=DistanceStrategy.COSINE, allow_dangerous_deserialization=True)
+#   st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
 
 # 先设置resume list为空
 if "resume_list" not in st.session_state:
@@ -137,7 +139,8 @@ def upload_file():
           # 将读取到的cvs文件中的Resume列分块，并生成向量数据库，存入FAISS_PATH中
           vectordb = ingest(st.session_state.df, "Resume", st.session_state.embedding_model)
           # 设置RAG pipeline
-          st.session_state.retriever = SelfQueryRetriever(vectordb, st.session_state.df)
+          # st.session_state.retriever = SelfQueryRetriever(vectordb, st.session_state.df)
+          st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
   else:
     # 如果上传的文件为空，则读取默认数据到df，也就是已经放在目录中的resumes.csv文件 
     st.session_state.df = pd.read_csv(DATA_PATH)
