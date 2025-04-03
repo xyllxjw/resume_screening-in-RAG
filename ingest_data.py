@@ -14,7 +14,7 @@ FAISS_PATH = os.getenv("FAISS_PATH")
 
 def ingest(df: pd.DataFrame, content_column: str, embedding_model):
   # 这段代码的主要功能是创建一个 DataFrameLoader 的实例，使用给定的 Pandas 数据框 df 和指定的内容列 content_column。
-  # 这个实例 loader 将用于后续的数据处理操作，例如加载、转换或分析数据框中的文本内容。
+  # 实例 loader 将用于后续的数据处理操作，例如加载、转换或分析数据框中的文本内容。
   loader = DataFrameLoader(df, page_content_column=content_column)
 
   text_splitter = RecursiveCharacterTextSplitter(
