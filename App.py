@@ -233,14 +233,19 @@ if user_query is not None and user_query != "": #确保 user_query 变量有有�
   with st.chat_message("AI"):
     start = time.time()
     with st.spinner("Generating answers..."):
+      #这里开始调用retriever.py的retrieve_docs方法，执行链式调用
       document_list = retriever.retrieve_docs(user_query, llm, st.session_state.rag_selection)
+      # 获取检索类型
       query_type = retriever.meta_data["query_type"]
+      # 将检索到的简历存储到resume_list中
       st.session_state.resume_list = document_list
+      # 调用llm.generate_message_stream方法，生成响应
       stream_message = llm.generate_message_stream(user_query, document_list, [], query_type)
     end = time.time()
-
-    response = st.write_stream(stream_message)
     
+    # 将响应写入到页面中
+    response = st.write_stream(stream_message)
+    # 调用chatbot_verbosity.py的render方法，渲染响应  
     retriever_message = chatbot_verbosity
     retriever_message.render(document_list, retriever.meta_data, end-start)
 

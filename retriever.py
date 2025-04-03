@@ -59,9 +59,9 @@ class RAGRetriever():
     reranked_documents = self.__reciprocal_rank_fusion__(document_rank_list)
     return reranked_documents
 
-  #这个函数是文档检索系统的最后一步，它：
-# 将排序后的文档ID转换为实际的简历内容，添加清晰的ID标识以便识别，控制返回结果的数量，保持文档的相关性排序
-# 这样的实现使得系统能够返回格式良好、易于识别的简历内容，方便后续的处理和展示。
+  #这个函数是文档检索系统的最后一步，即返回重排序后的文档ID和Resume
+  # 将排序后的文档ID转换为实际的简历内容，添加清晰的ID标识以便识别，控制返回结果的数量，保持文档的相关性排序
+  # 这样的实现使得系统能够返回格式良好、易于识别的简历内容，方便后续的处理和展示。
   def retrieve_documents_with_id(self, doc_id_with_score: dict, threshold=5):
     id_resume_dict = dict(zip(self.df["ID"].astype(str), self.df["Resume"]))
     retrieved_ids = list(sorted(doc_id_with_score, key=doc_id_with_score.get, reverse=True))[:threshold]
@@ -83,11 +83,11 @@ class SelfQueryRetriever(RAGRetriever):
     ])
     # 定义一个元数据字典，用于存储检索过程中的各种信息
     self.meta_data = {
-      "rag_mode": "",
-      "query_type": "no_retrieve",
-      "extracted_input": "",
-      "subquestion_list": [],
-      "retrieved_docs_with_scores": []
+      "rag_mode": "", # 检索模式
+      "query_type": "no_retrieve", # 查询类型
+      "extracted_input": "", # 提取的输入
+      "subquestion_list": [], # 子问题列表
+      "retrieved_docs_with_scores": [] # 通过子问题检索到的ID列表和得分
     }
   # 定义了一个用于检索文档的嵌套函数 retrieve_docs，它接受一个用户的问题、一个 LLM 对象和一个 RAG 模式作为输入。
   def retrieve_docs(self, question: str, llm, rag_mode: str):
@@ -129,22 +129,26 @@ class SelfQueryRetriever(RAGRetriever):
     
     # 这段代码定义了一个路由函数 router，用于根据 LLM 的输出选择执行不同的工具函数。
     def router(response):
-      #检查响应是否为 AgentFinish类型，如果是，直接返回响应中的输出结果
+      #检查响应是否为 AgentFinish类型，也就是聊天对话结束了，直接返回响应中的输出结果
       if isinstance(response, AgentFinish):
         return response.return_values["output"]
       else:
+        # 定义一个工具箱，用于存储工具函数
         toolbox = {
           "retrieve_applicant_id": retrieve_applicant_id,
           "retrieve_applicant_jd": retrieve_applicant_jd
         }
+        # 根据大模型返回的内容调用工具函数，并更新元数据中的查询类型和提取的子问题
+        # 这里的查询类型决定了这个项目能有哪些功能，比如检索简历，检索职位描述，检索申请人ID
         self.meta_data["query_type"] = response.tool
         self.meta_data["extracted_input"] = response.tool_input
+        # 执行工具函数
         return toolbox[response.tool].run(response.tool_input)
     
 
     #以下代码实现了一个 RAG (检索增强生成) 系统的核心处理链
 
-    # 设置当前的 RAG 模式
+    # 设置当前的 RAG 模式，是RAG Fusion还是 generic RAG
     self.meta_data["rag_mode"] = rag_mode
 
     # 将工具函数转换为 OpenAI 函数格式
