@@ -143,7 +143,7 @@ def upload_file():
     st.session_state.df = pd.read_csv(DATA_PATH)
     # 加载向量数据库FAISS_PATH中的数据
     vectordb = FAISS.load_local(FAISS_PATH, st.session_state.embedding_model, distance_strategy=DistanceStrategy.COSINE, allow_dangerous_deserialization=True)
-    # 设置RAG pipeline
+    # 设置 RAG pipeline
     st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
 
 
