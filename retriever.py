@@ -33,7 +33,7 @@ class RAGRetriever():
     self.vectorstore = vectorstore_db
     self.df = df
 
-  # 实现了一个称为"倒数排名融合"（Reciprocal Rank Fusion，RRF）的算法，用于合并多个排序结果。
+  # 实现一个称为"倒数排名融合"（Reciprocal Rank Fusion，RRF）的算法，用于合并多个排序结果。
   def __reciprocal_rank_fusion__(self, document_rank_list: list[dict], k=50):
     fused_scores = {}
     for doc_list in document_rank_list:
