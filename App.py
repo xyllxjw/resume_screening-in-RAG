@@ -220,7 +220,7 @@ if not check_model_name(st.session_state.gpt_selection, st.session_state.api_key
 
 retriever = st.session_state.rag_pipeline
 
-# 初始化ChatBot类。用于生成提示词，和大模型对话
+# 初始化ChatBot类用于
 llm = ChatBot(
   api_key=st.session_state.api_key,
   model=st.session_state.gpt_selection,
