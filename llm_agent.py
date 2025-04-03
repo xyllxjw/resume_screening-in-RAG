@@ -16,7 +16,7 @@ RAG_K_THRESHOLD = 5
 LLM_MODEL = "gpt-35-turbo"
 CUSTOMED_ENDPOINT = "https://aalto-openai-apigw.azure-api.net"
 
-
+#
 class ChatBot():
   def __init__(self, api_key: str, model: str):
     self.llm = ChatOpenAI(
