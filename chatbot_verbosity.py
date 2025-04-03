@@ -3,9 +3,17 @@ sys.dont_write_bytecode = True
 
 import streamlit as st
 import numpy as np
-##  
+##  document_list
+# meta_data = {
+#       "rag_mode": "", # 检索模式
+#       "query_type": "no_retrieve", # 查询类型
+#       "extracted_input": "", # 提取的输入
+#       "subquestion_list": [], # 子问题列表
+#       "retrieved_docs_with_scores": [] # 通过子问题检索到的ID列表和得分
+#     }
 def render(document_list: list, meta_data: dict, time_elapsed: float):
-  retriever_message = st.expander(f"Verbosity")
+  # 创建一个可折叠的区域，用于显示检索过程的详细信息
+  retriever_message = st.expander(f"Query in details")
   message_map = {
     "retrieve_applicant_jd": "**A job description is detected**. The system defaults to using RAG.",
     "retrieve_applicant_id": "**Applicant IDs are provided**. The system defaults to using exact ID retrieval.",
