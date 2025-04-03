@@ -89,7 +89,7 @@ class SelfQueryRetriever(RAGRetriever):
       "subquestion_list": [],
       "retrieved_docs_with_scores": []
     }
-  # 这段代码定义了一个用于检索文档的嵌套函数 retrieve_docs，它接受一个用户的问题、一个 LLM 对象和一个 RAG 模式作为输入。
+  # 定义了一个用于检索文档的嵌套函数 retrieve_docs，它接受一个用户的问题、一个 LLM 对象和一个 RAG 模式作为输入。
   def retrieve_docs(self, question: str, llm, rag_mode: str):
     # 定义了一个工具函数 retrieve_applicant_id，用于检索指定申请人的简历
     @tool(args_schema=ApplicantID)
