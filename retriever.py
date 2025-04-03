@@ -76,10 +76,12 @@ class SelfQueryRetriever(RAGRetriever):
   def __init__(self, vectorstore_db, df):
     super().__init__(vectorstore_db, df)
 
+    # 定义一个提示模板，用于生成检索请求,ChatPromptTemplate是langchain的组件之一，用于构建和使用提示模板。 
     self.prompt = ChatPromptTemplate.from_messages([
       ("system", "You are an expert in talent acquisition."),
       ("user", "{input}")
     ])
+    # 定义一个元数据字典，用于存储检索过程中的各种信息
     self.meta_data = {
       "rag_mode": "",
       "query_type": "no_retrieve",
@@ -105,18 +107,23 @@ class SelfQueryRetriever(RAGRetriever):
         except:
           return []
       return retrieved_resumes
+    
     # 定义了一个工具函数 retrieve_applicant_jd，用于检索与给定职位描述最相似的简历
     @tool(args_schema=JobDescription)
     def retrieve_applicant_jd(job_description: str):
       """Retrieve similar resumes given a job description"""
+      # 定义一个子问题列表，用于存储检索过程中的子问题
       subquestion_list = [job_description]
-
+      # 如果RAG模式为"RAG Fusion"，则生成子问题
       if rag_mode == "RAG Fusion":
         subquestion_list += llm.generate_subquestions(question)
-        
+      # 将子问题列表存储到元数据中
       self.meta_data["subquestion_list"] = subquestion_list
+      # 检索ID和重排序
       retrieved_ids = self.retrieve_id_and_rerank(subquestion_list)
+      # 将检索到的ID和得分存储到元数据中
       self.meta_data["retrieved_docs_with_scores"] = retrieved_ids
+      # 检索简历
       retrieved_resumes = self.retrieve_documents_with_id(retrieved_ids)
       return retrieved_resumes
     
