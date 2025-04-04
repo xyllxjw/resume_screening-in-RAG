@@ -19,6 +19,14 @@ from ingest_data import ingest
 from retriever import SelfQueryRetriever
 import chatbot_verbosity as chatbot_verbosity
 
+from pypdf import PdfReader
+import glob
+import csv
+
+DIR_PATH = r"./data/pdf-resumes/\*.pdf"
+OUT_PATH = "./data/resumes-data/pdf-resumes.csv"
+pdfs = glob.glob(DIR_PATH)
+
 load_dotenv()
 
 DATA_PATH = os.getenv("DATA_PATH")
@@ -108,6 +116,7 @@ if "embedding_model" not in st.session_state:
   st.session_state.embedding_model = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL, model_kwargs={"device": "cpu"})
 
 # 如果RAG pipeline为空，则加载向量数据库FAISS_PATH中的数据
+# 修改这个逻辑，如果为空，则先定义一个空值，然后上传文件后，向量化，存向量数据库一套搞完后，再初始化
 if "rag_pipeline" not in st.session_state:
   st.session_state.rag_pipeline = None
 
@@ -118,8 +127,21 @@ if "rag_pipeline" not in st.session_state:
 if "resume_list" not in st.session_state:
   st.session_state.resume_list = []
 
+def convert_pdf_to_csv(pdfs):
+  id = 0
+  with open(OUT_PATH, mode="w", newline="", encoding="utf-8") as csv_file:
+    writer = csv.writer(csv_file)    
+    writer.writerow(["ID", "Resume"])
 
+    for pdf_path in pdfs:
+        reader = PdfReader(pdf_path)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+        writer.writerow([id, text])
+        id += 1  
 
+#修改逻辑，上传pdf文件，然后转换为csv文件，再进行向量化，ingest数据
 def upload_file():
   modal = Modal(key="Demo Key", title="File Error", max_width=500)
   if st.session_state.uploaded_file != None:
