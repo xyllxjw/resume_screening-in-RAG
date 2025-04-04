@@ -19,22 +19,27 @@ from ingest_data import ingest
 from retriever import SelfQueryRetriever
 import chatbot_verbosity as chatbot_verbosity
 
+#
+import tkinter as tk
+from tkinter import filedialog
+
+# # 创建一个隐藏的主窗口，存放文件选择对话框
+root = tk.Tk()
+root.withdraw()# 隐藏主窗口
+
+
 from pypdf import PdfReader
 import glob
 import csv
 
-DIR_PATH = r"./data/pdf-resumes/\*.pdf"
-OUT_PATH = "./data/resumes-data/pdf-resumes.csv"
-pdfs = glob.glob(DIR_PATH)
+# 上传pdf文件时，转换为csv文件的保存路径
+OUT_PATH_FILE = "./data/resume-data/pdf-resumes.csv"
 
 load_dotenv()
 
-DATA_PATH = os.getenv("DATA_PATH")
-FAISS_PATH = os.getenv("FAISS_PATH")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
-
-print(DATA_PATH)
-print(FAISS_PATH)
+DATA_PATH = os.getenv("DATA_PATH")                # 默认数据路径./data/resume-data/resumes.csv
+FAISS_PATH = os.getenv("FAISS_PATH")              # 向量数据库路径./data/resume-data/faiss_index
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")    # 向量模型sentence-transformers/all-MiniLM-L6-v2
 
 welcome_message = """
   #### Introduction 🚀
@@ -98,7 +103,6 @@ about_message = """
   If you are interested, please don't hesitate to give me a star. ⭐
 """
 
-
 st.set_page_config(page_title="Resume Screening in RAG")
 st.title("Resume Screening in RAG")
 
@@ -109,7 +113,7 @@ if "chat_history" not in st.session_state:
 
 # df 为空，则读取默认数据到df，也就是已经放在目录中的resumes.csv文件
 if "df" not in st.session_state:
-  st.session_state.df = pd.read_csv(DATA_PATH)
+  st.session_state.df = None
 
 # 设置embedding模型
 if "embedding_model" not in st.session_state:
@@ -123,13 +127,28 @@ if "rag_pipeline" not in st.session_state:
 #   vectordb = FAISS.load_local(FAISS_PATH, st.session_state.embedding_model, distance_strategy=DistanceStrategy.COSINE, allow_dangerous_deserialization=True)
 #   st.session_state.rag_pipeline = SelfQueryRetriever(vectordb, st.session_state.df)
 
-# 先设置resume list为空
+# 先设置resume list为空，这是用来存放检索到的简历列表
 if "resume_list" not in st.session_state:
   st.session_state.resume_list = []
 
+# 选择pdf上传时，选择文件夹初始为空
+if "uploaded_pdf_file_path" not in st.session_state:
+  st.session_state.uploaded_pdf_file_path = None
+
+if "uploaded" not in st.session_state:
+  st.session_state.uploaded = None
+
+# if "reload" not in st.session_state:
+#   st.session_state.reload = False
+
+# 将pdf文件转换为csv文件，存放路径为OUT_PATH_FILE
 def convert_pdf_to_csv(pdfs):
-  id = 0
-  with open(OUT_PATH, mode="w", newline="", encoding="utf-8") as csv_file:
+  # 检查OUT_PATH_FILE是否存在，如果存在则删除
+  if os.path.exists(OUT_PATH_FILE):
+     os.remove(OUT_PATH_FILE)
+
+  id = 1
+  with open(OUT_PATH_FILE, mode="w", newline="", encoding="utf-8") as csv_file:
     writer = csv.writer(csv_file)    
     writer.writerow(["ID", "Resume"])
 
@@ -140,13 +159,14 @@ def convert_pdf_to_csv(pdfs):
             text += page.extract_text() + "\n"
         writer.writerow([id, text])
         id += 1  
+  # return OUT_PATH_FILE
 
-#修改逻辑，上传pdf文件，然后转换为csv文件，再进行向量化，ingest数据
+#上传csv文件，进行向量化，ingest数据
 def upload_file():
   modal = Modal(key="Demo Key", title="File Error", max_width=500)
-  if st.session_state.uploaded_file != None:
+  if st.session_state.uploaded_csv_file != None:
     try:  
-      df_load = pd.read_csv(st.session_state.uploaded_file)
+      df_load = pd.read_csv(st.session_state.uploaded_csv_file)
     except Exception as error:
       with modal.container():
         st.markdown("The uploaded file returns the following error message. Please check your csv file again.")
@@ -158,6 +178,7 @@ def upload_file():
       else:
         with st.toast('Indexing the uploaded data. This may take a while...'):
           st.session_state.df = df_load
+          print("df是:",st.session_state.df)
           # 将读取到的cvs文件中的Resume列分块，并生成向量数据库，存入FAISS_PATH中
           vectordb = ingest(st.session_state.df, "Resume", st.session_state.embedding_model)
           # 设置RAG pipeline
@@ -166,6 +187,7 @@ def upload_file():
   else:
     # 如果上传的文件为空，则读取默认数据到df，也就是已经放在目录中的resumes.csv文件 
     st.session_state.df = pd.read_csv(DATA_PATH)
+    print("df1:",st.session_state.df)
     # 加载向量数据库FAISS_PATH中的数据
     vectordb = FAISS.load_local(FAISS_PATH, st.session_state.embedding_model, distance_strategy=DistanceStrategy.COSINE, allow_dangerous_deserialization=True)
     # 设置 RAG pipeline
@@ -197,7 +219,8 @@ def clear_message():
   st.session_state.resume_list = []
   st.session_state.chat_history = [AIMessage(content=welcome_message)]
 
-
+def reset_selectbox():
+    del st.session_state.uploaded
 
 user_query = st.chat_input("Type your message here...")
 
@@ -207,7 +230,46 @@ with st.sidebar:
   st.text_input("OpenAI's API Key", type="password", key="api_key")
   st.selectbox("RAG Mode", ["Generic RAG", "RAG Fusion"], placeholder="Generic RAG", key="rag_selection")
   st.text_input("GPT Model", "gpt-4o-mini", key="gpt_selection")
-  st.file_uploader("Upload resumes", type=["csv"], key="uploaded_file", on_change=upload_file)
+  # st.file_uploader("Upload resumes", type=["csv"], key="uploaded_csv_file", on_change=upload_file)
+
+  # 创建下拉选项框
+  st.selectbox(
+      'select the format of resumes：',
+      ('please select,the pdf file will be converted to csv file', 'Upload resumes-pdf', 'Upload resumes-cvs'),
+      key="uploaded",
+      # index=0
+  )
+  print("uploaded:",st.session_state.uploaded)
+  # 根据选择显示文件上传框
+  
+      # st.session_state.uploaded = False
+      # Make folder picker dialog appear on top of other windows
+  if st.session_state.uploaded == 'Upload resumes-pdf':
+      root.wm_attributes('-topmost', 1)
+      st.session_state.uploaded_pdf_file_path = filedialog.askdirectory(title="choose a folder",master=root)
+        
+      if st.session_state.uploaded_pdf_file_path is not None:
+        try:
+          dir_path = f"{st.session_state.uploaded_pdf_file_path}/*.pdf"         
+          pdfs = glob.glob(dir_path)
+          convert_pdf_to_csv(pdfs)            
+          st.session_state.uploaded_csv_file = OUT_PATH_FILE
+          upload_file()
+              
+        except Exception as e:
+          st.error(f"upload pdf file error: {e}")
+            
+        st.success("PDF Resumes already uploaded,you can choose other resumes upload, to switch the base reusmes data")
+       
+      
+  elif st.session_state.uploaded == 'Upload resumes-cvs':      
+      st.file_uploader("Upload resumes in csv format", type=["csv"], key="uploaded_csv_file", on_change=upload_file)        
+      # st.session_state.uploaded = 'Upload resumes-cvs'  # 标记文件已上传
+      st.success("CSVResumes already uploaded,you can choose other resumes upload, to switch the base reusmes data")     
+      
+  print("index1:",st.session_state.uploaded)
+  
+  
   st.button("Clear conversation", on_click=clear_message)
 
   st.divider()
